@@ -64,8 +64,11 @@ typedef struct Parameters_{
   int write_keff; // whether to output keff
   char *tally_file; // path to write tallies to
   char *keff_file; // path to write keff to
-  MPI_Comm comm = MPI_COMM_WORLD;
-  MPI_Datatype datatype;
+  MPI_Comm comm;
+  MPI_Datatype type;
+  int pX, pY, pZ;
+  int size, rank;
+  int coords[];
 } Parameters;
 
 typedef struct Particle_{

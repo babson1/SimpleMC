@@ -147,11 +147,20 @@ void parse_parameters(Parameters *parameters)
       strcpy(parameters->keff_file, s);
     }
 
+    else if(strcmp(s, "ProX") == 0){
+      parameters->pX = atoi(strtok(NULL, "=\n"));
+    }
+    else if(strcmp(s, "ProY") == 0){
+      parameters->pY = atoi(strtok(NULL, "=\n"));
+    }
+    else if(strcmp(s, "ProZ") == 0){
+      parameters->pZ = atoi(strtok(NULL, "=\n"));
+    }
     // Unknown config file option
     else print_error("Unknown option in config file.");
-  }
-
-  fclose(fp);
+    }
+ 
+ fclose(fp);
 
   return;
 }

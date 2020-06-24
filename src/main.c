@@ -12,20 +12,46 @@ int main(int argc, char *argv[])
   double t1, t2; // timers
   MPI_Comm cart;
   int rank, size; 
+  int dims[3], wrap[3]={TRUE, TRUE, TRUE};
+
+  MPI_Init(&argc, &argv);
 
   // Get inputs: set parameters to default values, parse parameter file,
   // override with any command line inputs, and print parameters
   parameters = init_parameters();
   parse_parameters(parameters);
   read_CLI(argc, argv, parameters);
-  print_parameters(parameters);
 
-  // Set initial RNG seed
+  dims[0]=parameters->pX ; dims[1]=parameters->pY; dims[2]=parameters->pZ;
+  MPI_Cart_create(MPI_COMM_WORLD,3, dims, wrap, TRUE, &cart);
+  MPI_Comm_rank(cart, &rank);
+  MPI_Comm_size(cart, &size);
+ 
+  parameters->comm = cart;
+  parameters->comm = rank;
+  parameters->comm = size;
+
+if(size != dims[0]*dims[1]*dims[2]) {
+  if(parameters->rank == 0)
+    printf("Product of procs per dimension != total proc count\n");
+  MPI_Barrier(cart);
+  MPI_Abort(cart, 1);
+}  
+
+ MPI_Cart_coords(parameters->comm, rank, 3, parameters->coords);
+  if(rank==0){ 
+   print_parameters(parameters);
+ }
+
+ // Set initial RNG seed
   set_initial_seed(parameters->seed);
   set_stream(STREAM_INIT);
 
   // Create files for writing results to
-  init_output(parameters);
+  if(rank==0) 
+     init_output(parameters);
+
+
 
   // Set up geometry
   geometry = init_geometry(parameters);
@@ -44,19 +70,25 @@ int main(int argc, char *argv[])
 
   // Set up array for k effective
   keff = calloc(parameters->n_active, sizeof(double));
-
+ if(rank==0){
   center_print("SIMULATION", 79);
   border_print();
   printf("%-15s %-15s %-15s\n", "BATCH", "KEFF", "MEAN KEFF");
+}
 
   // Start time
-  t1 = timer();
+
+ MPI_Barrier(cart);
+ t1 = MPI_Wtime();
 
   run_eigenvalue(parameters, geometry, material, source_bank, fission_bank, tally, keff);
 
   // Stop time
-  t2 = timer();
+ MPI_Barrier(cart);
+ t2 = MPI_Wtime();
+ 
 
+ if(rank==0)
   printf("Simulation time: %f secs\n", t2-t1);
 
   // Free memory
@@ -69,23 +101,6 @@ int main(int argc, char *argv[])
   free(parameters);
 
 
-MPI_Init(&argc, &argv);
-MPI_Cart_create(MPI_Comm cart, 
-MPI_Comm_rank(cart, &rank);
-MPI_Comm_size(cart, $size);
 
-
-MPI_Barrier(cart);
-MPI_Abort(cart, 1);
-MPI_Cart_coords
-
-
-MPI_Barrier(cart);
-MPI_Wtime();
-run_eigenvalue call
-MPI_Wtime();
-
-
-MPI_Finalize();
-  return 0;
-}
+  MPI_Finalize();
+  return 0;}

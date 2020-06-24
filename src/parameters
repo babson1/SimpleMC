@@ -63,11 +63,11 @@ tally_file=tally.dat
 keff_file=keff.dat
 
 #Processors X-Direction
-
+ProX=1
 
 #Processors Y-Direction
-
+ProY=1
 
 #Processors Z-Direction
-
+ProZ=1
 
