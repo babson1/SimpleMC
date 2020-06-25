@@ -5,7 +5,7 @@ void parse_parameters(Parameters *parameters)
 {
   char line[256], *s;
   FILE *fp = fopen("parameters", "r");
-  MPI_Status status; 
+ // MPI_Status status; 
 
   while((s = fgets(line, sizeof(line), fp)) != NULL){
 
@@ -146,7 +146,7 @@ void parse_parameters(Parameters *parameters)
       parameters->keff_file = malloc(strlen(s)*sizeof(char)+1);
       strcpy(parameters->keff_file, s);
     }
-
+		// Added X,Y,Z Processors 
     else if(strcmp(s, "ProX") == 0){
       parameters->pX = atoi(strtok(NULL, "=\n"));
     }
@@ -156,6 +156,7 @@ void parse_parameters(Parameters *parameters)
     else if(strcmp(s, "ProZ") == 0){
       parameters->pZ = atoi(strtok(NULL, "=\n"));
     }
+
     // Unknown config file option
     else print_error("Unknown option in config file.");
     }

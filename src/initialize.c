@@ -28,6 +28,7 @@ Parameters *init_parameters(void)
   MPI_Datatype dots, base[2]={MPI_INT, MPI_DOUBLE};
   int blocks[2]={2,8};
   MPI_Aint offsets[2], lb, extent;
+  
   MPI_Type_get_extent(MPI_INT, &lb, &extent);
   offsets[0]=lb; offsets[1]=blocks[0]*extent;
   MPI_Type_create_struct(2, blocks, offsets, base, &dots); 

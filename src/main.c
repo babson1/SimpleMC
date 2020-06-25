@@ -22,8 +22,9 @@ int main(int argc, char *argv[])
   parse_parameters(parameters);
   read_CLI(argc, argv, parameters);
 
+	parameters->comm=cart;
   dims[0]=parameters->pX ; dims[1]=parameters->pY; dims[2]=parameters->pZ;
-  MPI_Cart_create(MPI_COMM_WORLD,3, dims, wrap, TRUE, &cart);
+  MPI_Cart_create(parameters->comm, 3, dims, wrap, TRUE, &cart);
   MPI_Comm_rank(cart, &rank);
   MPI_Comm_size(cart, &size);
  
