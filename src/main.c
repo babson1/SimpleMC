@@ -22,15 +22,14 @@ int main(int argc, char *argv[])
   parse_parameters(parameters);
   read_CLI(argc, argv, parameters);
 
-	parameters->comm=cart;
   dims[0]=parameters->pX ; dims[1]=parameters->pY; dims[2]=parameters->pZ;
-  MPI_Cart_create(parameters->comm, 3, dims, wrap, TRUE, &cart);
+  MPI_Cart_create(MPI_COMM_WORLD, 3, dims, wrap, TRUE, &cart);
   MPI_Comm_rank(cart, &rank);
   MPI_Comm_size(cart, &size);
  
   parameters->comm = cart;
-  parameters->comm = rank;
-  parameters->comm = size;
+  parameters->rank = rank;
+  parameters->size = size;
 
 if(size != dims[0]*dims[1]*dims[2]) {
   if(parameters->rank == 0)
@@ -39,7 +38,7 @@ if(size != dims[0]*dims[1]*dims[2]) {
   MPI_Abort(cart, 1);
 }  
 
- MPI_Cart_coords(parameters->comm, rank, 3, parameters->coords);
+ MPI_Cart_coords(cart, rank, 3, parameters->coords);
   if(rank==0){ 
    print_parameters(parameters);
  }

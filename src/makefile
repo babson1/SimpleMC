@@ -1,8 +1,8 @@
 # User options
 
 COMPILER = gnu
-OPTIMIZE = yes
-DEBUG    = no
+OPTIMIZE = no
+DEBUG    = yes
 
 # Program and source code
 

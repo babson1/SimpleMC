@@ -25,12 +25,13 @@ Parameters *init_parameters(void)
   p->tally_file = NULL;
   p->keff_file = NULL;
   
+	//Quickly Added Stuff 6-23-2020
   MPI_Datatype dots, base[2]={MPI_INT, MPI_DOUBLE};
   int blocks[2]={2,8};
   MPI_Aint offsets[2], lb, extent;
   
   MPI_Type_get_extent(MPI_INT, &lb, &extent);
-  offsets[0]=lb; offsets[1]=blocks[0]*extent;
+  offsets[0]=lb; offsets[1]=blocks[0]*extent+lb;
   MPI_Type_create_struct(2, blocks, offsets, base, &dots); 
   MPI_Type_commit(&dots);
   p->type=dots; 
@@ -41,11 +42,17 @@ Geometry *init_geometry(Parameters *parameters)
 {
   Geometry *g = malloc(sizeof(Geometry));
 
+	int src, dest; 
+
   g->x = parameters->gx;
   g->y = parameters->gy;
   g->z = parameters->gz;
   g->bc = parameters->bc;
-
+	
+	for(int i=0; i<3; i++){
+	MPI_Cart_shift(parameters->comm, i, 1, &src, &dest);
+	g->nay[i*2]=src; g->nay[(i*2)+1]=dest;
+}
   return g;
 }
 
@@ -54,11 +61,14 @@ Tally *init_tally(Parameters *parameters)
   Tally *t = malloc(sizeof(Tally));
 
   t->tallies_on = FALSE;
-  t->n = parameters->n_bins;
-  t->dx = parameters->gx/t->n;
-  t->dy = parameters->gy/t->n;
-  t->dz = parameters->gz/t->n;
-  t->flux = calloc(t->n*t->n*t->n, sizeof(double));
+  t->nx = parameters->n_bins/parameters->pX;
+	t->ny = parameters->n_bins/parameters->pY;
+	t->nz = parameters->n_bins/parameters->pZ;
+  
+	t->dx = parameters->gx/parameters->n_bins;
+  t->dy = parameters->gy/parameters->n_bins;
+  t->dz = parameters->gz/parameters->n_bins;
+  t->flux = calloc(t->nx*t->ny*t->nz, sizeof(double));
 
   return t;
 }
@@ -116,7 +126,10 @@ Bank *init_source_bank(Parameters *parameters, Geometry *geometry)
   Bank *source_bank;
 
   // Initialize source bank
-  source_bank = init_bank(parameters->n_particles);
+	if(parameters->rank == 0)
+  	source_bank = init_bank(parameters->n_particles);
+	else
+		source_bank = init_bank(parameters->n_particles/parameters->size);
 
   // Sample source particles
   for(i_p=0; i_p<parameters->n_particles; i_p++){
@@ -130,11 +143,14 @@ Bank *init_source_bank(Parameters *parameters, Geometry *geometry)
 Bank *init_fission_bank(Parameters *parameters)
 {
   Bank *fission_bank;
-  fission_bank = init_bank(2*parameters->n_particles);
+	if(parameters->rank == 0) 
+		fission_bank = init_bank(2*parameters->n_particles);
+	else
+		fission_bank = init_bank(2*parameters->n_particles/parameters->size);
 
   return fission_bank;
 }
-
+//TODO; Add more variables for disperse method
 Bank *init_bank(unsigned long n_particles)
 {
   Bank *b = malloc(sizeof(Bank));
@@ -149,6 +165,7 @@ Bank *init_bank(unsigned long n_particles)
 void sample_source_particle(Geometry *geometry, Particle *p)
 {
   p->alive = TRUE;
+	p->hit = FALSE; 
   p->mu = rn()*2 - 1;
   p->phi = rn()*2*PI;
   p->u = p->mu;
@@ -157,14 +174,20 @@ void sample_source_particle(Geometry *geometry, Particle *p)
   p->x = rn()*geometry->x;
   p->y = rn()*geometry->y;
   p->z = rn()*geometry->z;
-
+	p->coord[0] = p->x/geometry->xl;
+	p->coord[1] = p->y/geometry->yl;
+	p->coord[2] = p->z/geometry->zl;
+	p->lx = p->x - (geometry->xl*p->coord[0]);
+	p->ly = p->y - (geometry->yl*p->coord[1]);
+	p->lz = p->z - (geometry->zl*p->coord[2]);
   return;
 }
 
 void sample_fission_particle(Particle *p, Particle *p_old)
 {
   p->alive = TRUE;
-  p->mu = rn()*2 - 1;
+  p->hit = FALSE;
+	p->mu = rn()*2 - 1;
   p->phi = rn()*2*PI;
   p->u = p->mu;
   p->v = sqrt(1 - p->mu*p->mu)*cos(p->phi);

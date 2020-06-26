@@ -5,7 +5,7 @@ void parse_parameters(Parameters *parameters)
 {
   char line[256], *s;
   FILE *fp = fopen("parameters", "r");
- // MPI_Status status; 
+  
 
   while((s = fgets(line, sizeof(line), fp)) != NULL){
 
@@ -464,10 +464,10 @@ void write_tally(Tally *t, char *filename)
 
   fp = fopen(filename, "a");
 
-  for(i=0; i<t->n; i++){
-    for(j=0; j<t->n; j++){
-      for(k=0; k<t->n; k++){
-        fprintf(fp, "%e ", t->flux[i + t->n*j + t->n*t->n*k]);
+  for(i=0; i<t->nx; i++){
+    for(j=0; j<t->ny; j++){
+      for(k=0; k<t->nz; k++){
+        fprintf(fp, "%e ", t->flux[i + t->nx*j + t->nx*t->ny*k]);
       }
       fprintf(fp, "\n");
     }

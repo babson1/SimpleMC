@@ -15,14 +15,14 @@ void score_tally(Parameters *parameters, Material *material, Tally *tally, Parti
   iz = p->z/tally->dz;
 
   // Scalar flux
-  tally->flux[ix + tally->n*iy + tally->n*tally->n*iz] += 1./(vol * material->xs_t * parameters->n_particles);
+  tally->flux[ix + tally->nx*iy + tally->ny*tally->nz*iz] += 1./(vol * material->xs_t * parameters->n_particles);
 
   return;
 }
 
 void reset_tally(Tally *tally)
 {
-  memset(tally->flux, 0, tally->n*tally->n*tally->n*sizeof(double));
+  memset(tally->flux, 0, tally->nx*tally->ny*tally->nz*sizeof(double));
 
   return;
 }

@@ -82,6 +82,11 @@ typedef struct Particle_{
   double y;
   double z;
   int surface_crossed;
+	int hit;
+	int coord[3];
+	double lx;
+	double ly;
+	double lz;
 } Particle;
 
 typedef struct Geometry_{
@@ -89,6 +94,10 @@ typedef struct Geometry_{
   double x;
   double y;
   double z;
+	int nay[6];
+	double xl;
+	double yl;
+	double zl;
 } Geometry;
 
 typedef struct Nuclide_{
@@ -110,7 +119,9 @@ typedef struct Material_{
 
 typedef struct Tally_{
   int tallies_on; // whether tallying is currently turned on
-  int n; // mumber of grid boxes in each dimension 
+  int nx; // number of grid boxes per rank in the x dimension
+	int ny;
+	int nz;  
   double dx; // grid spacing
   double dy;
   double dz;
