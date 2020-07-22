@@ -54,7 +54,16 @@ void run_eigenvalue(Parameters *parameters, Geometry *geometry, Material *materi
       }
 
 			disperse(parameters, geometry, source_bank);
-      
+      // Find Collision Locations
+			for(i_p=0; i_p<source_bank->n; i_p++){
+				if(source_bank->p[i_p].hit == TRUE) {
+					if(tally->tallies_on == TRUE)
+						score_tally(parameters, material, tally, &source_bank->p[i_p]); 
+					// livers live
+						source_bank->p[i_p].hit = FALSE; 
+				}
+			}
+			// let processors sum count of dead particles
 			MPI_Allreduce(&source_bank->dead, &parameters->dead, 1, MPI_UNSIGNED_LONG, MPI_SUM, parameters->comm);
 		}
 			// Switch RNG stream off tracking
@@ -63,12 +72,11 @@ void run_eigenvalue(Parameters *parameters, Geometry *geometry, Material *materi
 		
       // Sample new source particles from the particles that were added to the
       // fission bank during this generation
-      i_p=synchronize_bank(source_bank, fission_bank,parameters);
+      i_p = synchronize_bank(source_bank, fission_bank,parameters);
      	 
 			// Calculate generation k_effective and accumulate batch k_effective
       keff_gen = (double) i_p / source_bank->n;
       keff_batch += keff_gen;
-
 		}
 
     // Calculate k effective
@@ -87,34 +95,49 @@ void run_eigenvalue(Parameters *parameters, Geometry *geometry, Material *materi
     }
 
     // Status text
-		if(parameters->0)
+		if(parameters->rank == 0)
     print_status(i_a, i_b, keff_batch, keff_mean, keff_std);
   }
 
   // Write out keff
-	if(parameters->0)
+	if(parameters->rank == 0){
 		if(parameters->write_keff == TRUE){
     write_keff(keff, parameters->n_active, parameters->keff_file);
-  }
-
+  	}	
+	}
   return;
 }
 
 unsigned long	synchronize_bank(Bank *source_bank, Bank *fission_bank, Parameters *parameters)
 {
   unsigned long i, j;
- // unsigned long n_s = source_bank->n;
+  unsigned long n_s = source_bank->n;
   unsigned long n_f = fission_bank->n;
 	unsigned long *n_ptr = malloc(parameters->size*sizeof(unsigned long));
+	MPI_Status stat; 
 
 	MPI_Gather(&fission_bank->n,1, MPI_UNSIGNED_LONG, n_ptr,1, MPI_UNSIGNED_LONG, 0, parameters->comm);  
-		if(parameters == 0)
-  // If the fission bank is larger than the source bank, randomly select
+		if(parameters->rank == 0){
+				for(i=1; i<parameters->size; i++)
+					n_f += n_ptr[i]; 
+ 				if(fission_bank->sz<n_f)
+					fission_bank->resize(fission_bank);
+				for(i=1; i<parameters->size; i++){
+					MPI_Recv(&fission_bank->p[fission_bank->n],n_ptr[i], parameters->type, i, 0, parameters->comm, &stat);
+					fission_bank->n += n_ptr[i]; 
+				}
+				n_f = fission_bank->n;
+		}
+		else
+			MPI_Send(fission_bank->p, fission_bank->n, parameters->type, 0, 0, parameters->comm);
+	
+		if(parameters->rank == 0){
+	 // If the fission bank is larger than the source bank, randomly select
   // n_particles sites from the fission bank to create the new source bank
-  if(n_f >= n_s){
-
-    // Copy first n_particles sites from fission bank to source bank
-    memcpy(source_bank->p, fission_bank->p, n_s*sizeof(Particle));
+				if(n_f >=n_s){
+				
+				// Copy first n_particles sites from fission bank to source bank
+    		memcpy(source_bank->p, fission_bank->p, n_s*sizeof(Particle));
 
     // Replace elements with decreasing probability, such that after final
     // iteration each particle in fission bank will have equal probability of
@@ -140,11 +163,20 @@ unsigned long	synchronize_bank(Bank *source_bank, Bank *fission_bank, Parameters
 
     // Fill remaining source bank sites with fission bank
     memcpy(&(source_bank->p[n_s-n_f]), fission_bank->p, n_f*sizeof(Particle));
-  }
+  	}	
+ }
+  MPI_Barrier(parameters->comm);
+	//distribute to source banks
+	if(parameters->rank == 0)
+		MPI_Scatter(source_bank->p, n_s/parameters->size, parameters->type,MPI_IN_PLACE, n_s/parameters->size, parameters->type, 0, parameters->comm); 
+	else
+		MPI_Scatter(NULL, n_s/parameters->size,parameters->type, MPI_IN_PLACE, n_s/parameters->size, parameters->type, 0, parameters->comm);
 
-  fission_bank->n = 0;
+	fission_bank->n = 0;
+	source_bank->n = n_s/parameters->size;
+	source_bank->dead=0;
 
-  return;
+  return n_f;
 }
 
 void calculate_keff(double *keff, double *mean, double *std, int n)

@@ -46,7 +46,8 @@
 typedef struct Parameters_{
   unsigned long long seed; // RNG seed
   unsigned long n_particles; // number of particles
-  int n_batches; // number of batches
+  unsigned long dead;
+	int n_batches; // number of batches
   int n_generations; // number of generations per batch
   int n_active; // number of active batches
   int bc; // boundary conditions
@@ -131,8 +132,9 @@ typedef struct Tally_{
 typedef struct Bank_{
   unsigned long n; // number of particles
   unsigned long sz; // size of bank
-  Particle *p; // particle array
-  void (*resize)(struct Bank_ *b);
+  unsigned long dead; 
+	Particle *p, *ps, *pr, *ns, *nr;// particle array
+  void (*resize)(struct Bank_ *b); 
 } Bank;
 
 // io.c function prototypes
@@ -182,7 +184,7 @@ void collision(Material *material, Bank *fission_bank, double nu, Particle *p);
 
 // eigenvalue.c function prototypes
 void run_eigenvalue(Parameters *parameters, Geometry *geometry, Material *material, Bank *source_bank, Bank *fission_bank, Tally *tally, double *keff);
-void synchronize_bank(Bank *source_bank, Bank *fission_bank);
+unsigned long  synchronize_bank(Bank *source_bank, Bank *fission_bank, Parameters *parameters);
 void calculate_keff(double *keff, double *mean, double *std, int n);
 
 // tally.c function prototypes
