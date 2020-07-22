@@ -150,7 +150,7 @@ Bank *init_fission_bank(Parameters *parameters)
 
   return fission_bank;
 }
-//TODO; Add more variables for disperse method
+// old todo  
 Bank *init_bank(unsigned long n_particles)
 {
   Bank *b = malloc(sizeof(Bank));
@@ -180,7 +180,8 @@ void sample_source_particle(Geometry *geometry, Particle *p)
 	p->lx = p->x - (geometry->xl*p->coord[0]);
 	p->ly = p->y - (geometry->yl*p->coord[1]);
 	p->lz = p->z - (geometry->zl*p->coord[2]);
-  return;
+ 
+ return;
 }
 
 void sample_fission_particle(Particle *p, Particle *p_old)

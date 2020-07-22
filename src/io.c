@@ -202,6 +202,7 @@ void read_CLI(int argc, char *argv[], Parameters *parameters)
     else if(strcmp(arg, "-generations") == 0){
       if(++i < argc) parameters->n_generations = atoi(argv[i]);
       else print_error("Error reading command line input '-generations'");
+//generations loop
     }
 
     // Boundary conditions (-bc)

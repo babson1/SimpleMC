@@ -5,11 +5,12 @@ void run_eigenvalue(Parameters *parameters, Geometry *geometry, Material *materi
   int i_b; // index over batches
   int i_a = -1; // index over active batches
   int i_g; // index over generations
-  unsigned long i_p; // index over particles
+  unsigned long i_p, i_s; // index over particles
   double keff_gen = 1; // keff of generation
   double keff_batch; // keff of batch
   double keff_mean; // keff mean over active batches
   double keff_std; // keff standard deviation over active batches
+
 
   // Loop over batches
   for(i_b=0; i_b<parameters->n_batches; i_b++){
@@ -26,34 +27,49 @@ void run_eigenvalue(Parameters *parameters, Geometry *geometry, Material *materi
 
     // Loop over generations
     for(i_g=0; i_g<parameters->n_generations; i_g++){
+		
 
       // Set RNG stream for tracking
       set_stream(STREAM_TRACK);
+			
+			//Disperse Function Call
+			disperse(parameters, geometry, source_bank);
+			
+			MPI_Scan(&source_bank->n, &i_s, 1, MPI_UNSIGNED_LONG, MPI_SUM, parameters->comm);
+			i_s -=  source_bank->n; 
 
       // Loop over particles
-      for(i_p=0; i_p<parameters->n_particles; i_p++){
+			parameters->dead = 0;
+			while(parameters->dead < parameters->n_particles){
+      for(i_p=0; i_p<source_bank->n; i_p++){
 
 	// Set seed for particle i_p by skipping ahead in the random number
 	// sequence stride*(total particles simulated) numbers from the initial
 	// seed. This allows for reproducibility of the particle history.
-        rn_skip((i_b*parameters->n_generations + i_g)*parameters->n_particles + i_p);
+        rn_skip((i_b*parameters->n_generations + i_g)*parameters->n_particles + i_s);
+				i_s++;
 
         // Transport the next particle
         transport(parameters, geometry, material, source_bank, fission_bank, tally, &(source_bank->p[i_p]));
       }
 
-      // Switch RNG stream off tracking
+			disperse(parameters, geometry, source_bank);
+      
+			MPI_Allreduce(&source_bank->dead, &parameters->dead, 1, MPI_UNSIGNED_LONG, MPI_SUM, parameters->comm);
+		}
+			// Switch RNG stream off tracking
       set_stream(STREAM_OTHER);
       rn_skip(i_b*parameters->n_generations + i_g);
-
-      // Calculate generation k_effective and accumulate batch k_effective
-      keff_gen = (double) fission_bank->n / source_bank->n;
-      keff_batch += keff_gen;
-
+		
       // Sample new source particles from the particles that were added to the
       // fission bank during this generation
-      synchronize_bank(source_bank, fission_bank);
-    }
+      i_p=synchronize_bank(source_bank, fission_bank,parameters);
+     	 
+			// Calculate generation k_effective and accumulate batch k_effective
+      keff_gen = (double) i_p / source_bank->n;
+      keff_batch += keff_gen;
+
+		}
 
     // Calculate k effective
     keff_batch /= parameters->n_generations;
@@ -71,23 +87,28 @@ void run_eigenvalue(Parameters *parameters, Geometry *geometry, Material *materi
     }
 
     // Status text
+		if(parameters->0)
     print_status(i_a, i_b, keff_batch, keff_mean, keff_std);
   }
 
   // Write out keff
-  if(parameters->write_keff == TRUE){
+	if(parameters->0)
+		if(parameters->write_keff == TRUE){
     write_keff(keff, parameters->n_active, parameters->keff_file);
   }
 
   return;
 }
 
-void synchronize_bank(Bank *source_bank, Bank *fission_bank)
+unsigned long	synchronize_bank(Bank *source_bank, Bank *fission_bank, Parameters *parameters)
 {
   unsigned long i, j;
-  unsigned long n_s = source_bank->n;
+ // unsigned long n_s = source_bank->n;
   unsigned long n_f = fission_bank->n;
+	unsigned long *n_ptr = malloc(parameters->size*sizeof(unsigned long));
 
+	MPI_Gather(&fission_bank->n,1, MPI_UNSIGNED_LONG, n_ptr,1, MPI_UNSIGNED_LONG, 0, parameters->comm);  
+		if(parameters == 0)
   // If the fission bank is larger than the source bank, randomly select
   // n_particles sites from the fission bank to create the new source bank
   if(n_f >= n_s){
