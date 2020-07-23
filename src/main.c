@@ -77,7 +77,6 @@ if(size != dims[0]*dims[1]*dims[2]) {
 }
 
   // Start time
-
  MPI_Barrier(cart);
  t1 = MPI_Wtime();
 
