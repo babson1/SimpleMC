@@ -32,7 +32,7 @@ void run_eigenvalue(Parameters *parameters, Geometry *geometry, Material *materi
       // Set RNG stream for tracking
       set_stream(STREAM_TRACK);
 			
-			//Disperse Function Call
+			//TODO Disperse Function Call, MUST BE CREATED 
 			disperse(parameters, geometry, source_bank);
 			
 			MPI_Scan(&source_bank->n, &i_s, 1, MPI_UNSIGNED_LONG, MPI_SUM, parameters->comm);
@@ -52,7 +52,7 @@ void run_eigenvalue(Parameters *parameters, Geometry *geometry, Material *materi
         // Transport the next particle
         transport(parameters, geometry, material, source_bank, fission_bank, tally, &(source_bank->p[i_p]));
       }
-
+	//TODO Create disperse function
 			disperse(parameters, geometry, source_bank);
       // Find Collision Locations
 			for(i_p=0; i_p<source_bank->n; i_p++){
