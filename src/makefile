@@ -1,8 +1,8 @@
 # User options
 
 COMPILER = gnu
-OPTIMIZE = no
-DEBUG    = yes
+OPTIMIZE = yes
+DEBUG    = no
 
 # Program and source code
 
@@ -19,7 +19,8 @@ utils.c \
 io.c \
 transport.c \
 tally.c \
-eigenvalue.c
+eigenvalue.c \
+disperse.c
 
 OBJECTS = $(SOURCE:.c=.o)
 
