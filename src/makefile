@@ -19,8 +19,9 @@ utils.c \
 io.c \
 transport.c \
 tally.c \
-eigenvalue.c \
-disperse.c
+disperse.c \
+eigenvalue.c 
+
 
 OBJECTS = $(SOURCE:.c=.o)
 
