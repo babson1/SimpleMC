@@ -15,7 +15,7 @@ void score_tally(Parameters *parameters, Material *material, Tally *tally, Parti
   iz = p->z/tally->dz;
 
   // Scalar flux
-  tally->flux[ix + tally->nx*iy + tally->ny*tally->nz*iz] += 1./(vol * material->xs_t * parameters->n_particles);
+  tally->flux[iz + tally->nz*iy + tally->nz*tally->ny*ix] += 1./(vol * material->xs_t * parameters->n_particles);
 
   return;
 }
